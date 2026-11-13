@@ -8,7 +8,12 @@ const MAP = "https://maps.app.goo.gl/mmfsfrjDuyYL9R9R8?g_st=ic";
 const PHONES = ["9611589187", "9611050890"];
 const PHOTOS = { hero: "/photos/hero-couple.jpg", bride: "/photos/bride.jpg", groom: "/photos/groom-new.jpg", album: ["/photos/couple-new-1.jpg", "/photos/couple-new-2.jpg"], more: [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `/photos/g${n}.jpg`) };
 const HAMPI_BG = ["/hampi/virupaksha.jpg", "/hampi/chariot.jpg", "/hampi/lotus.jpg", "/hampi/ganesha.jpg"];
-const TEASER = { src: "/teaser.mp4", poster: "/teaser-poster.jpg" };
+// Pre-wedding memories shown in the album (landscape shots get a focus point so the couple stays in the 3:4 frame)
+const MEMORIES = Array.from({ length: 22 }, (_, i) => ({
+  id: "mem-" + (i + 1), type: "image", url: `/memories/m${String(i + 1).padStart(2, "0")}.jpg`,
+  pos: { 15: "28% 50%", 16: "18% 50%", 20: "38% 50%" }[i] || undefined,
+}));
+const TEASER = { src: "/teaser-prewedding.mp4", poster: "/teaser-prewedding-poster.jpg" };
 
 function useCountdown() {
   const [left, setLeft] = useState(null);
@@ -40,7 +45,7 @@ const Head = ({ kn, en, sub }) => (
 
 export default function Page() {
   const c = useCountdown();
-  const [media, setMedia] = useState([]);
+  const [media, setMedia] = useState(MEMORIES);
   const [open, setOpen] = useState(null);
   const [rsvp, setRsvp] = useState({ name: "", guests: "1", yes: true, msg: "" });
   const [opened, setOpened] = useState(false);
@@ -54,17 +59,17 @@ const [galleryError, setGalleryError] = useState("");
 useEffect(() => {
   const fetchGallery = async () => {
     try {
-      const response = await fetch("/api/gallery");
+      const response = await fetch("/api/gallery", { cache: "no-store" });
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.error || "Unable to load gallery");
       }
 
-      setMedia(data.media || []);
+      setMedia([...(data.media || []), ...MEMORIES]);
     } catch (error) {
       console.error("Gallery loading error:", error);
-      setGalleryError("Unable to load wedding photos.");
+      /* keep showing the built-in memories */
     }
   };
 
@@ -156,8 +161,8 @@ useEffect(() => {
       <section id="teaser" className="sec">
         <Head kn="ಮದುವೆ ಟೀಸರ್" en="Wedding teaser" />
         <Reveal from="z">
-          <div className="cinema"><span className={"pbtn" + (playing ? " hide" : "")}><i /></span><video poster={TEASER.poster} controls playsInline preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)}><source src={TEASER.src} type="video/mp4" /></video><span className="badge">1:27</span></div>
-          <p className="hint">A journey to forever — Bride · Groom · Mehndi · Haldi · Family Blessings</p>
+          <div className="cinema"><span className={"pbtn" + (playing ? " hide" : "")}><i /></span><video poster={TEASER.poster} controls playsInline preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)}><source src={TEASER.src} type="video/mp4" /></video><span className="badge">1:06</span></div>
+          <p className="hint">A journey to forever — our pre-wedding story</p>
         </Reveal>
       </section>
 
@@ -230,7 +235,7 @@ useEffect(() => {
         {m.type === "video" ? (
           <video src={m.url} muted playsInline />
         ) : (
-          <img src={m.url} alt="Wedding memory" />
+          <img src={m.url} alt="Wedding memory" loading="lazy" style={m.pos ? { objectPosition: m.pos } : undefined} />
         )}
 
         {m.type === "video" && (
